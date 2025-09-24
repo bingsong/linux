@@ -1,0 +1,94 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: install builddeps
+      run: |
+        sudo apt update
+        sudo apt install -y bison flex libelf-dev
+    - name: configure
+      run: |
+        curl -o .config https://raw.githubusercontent.com/elrepo/kernel/refs/heads/main/kernel-ml/el10/config-6.16.8-x86_64
+        make olddefconfig
+        cat >./lsmod<<EOL
+        amd_atl                57344  1
+        amd64_edac             57344  0
+        authenc                12288  1 intel_qat
+        ccp                   376832  2 kvm_amd,tpm_hygon
+        crc32c_intel           16384  3
+        crc8                   12288  1 intel_qat
+        dh_generic             16384  1 intel_qat
+        edac_mce_amd           45056  1 amd64_edac
+        ext4                 1179648  1
+        ghash_clmulni_intel    16384  0
+        ib_core               552960  2 ib_uverbs,mlx5_ib
+        ib_core               581632  16 rdma_cm,ib_ipoib,iw_cm,ib_umad,rdma_ucm,ib_uverbs,mlx5_ib,ib_cm
+        ib_uverbs             208896  1 mlx5_ib
+        ib_uverbs             217088  29 rdma_ucm,mlx5_ib
+        intel_cstate           28672  0
+        intel_ifs              40960  0
+        intel_qat             442368  1 qat_4xxx
+        intel_rapl_common      49152  1 intel_rapl_msr
+        intel_rapl_common      49152  1 intel_rapl_tpmi
+        intel_rapl_msr         20480  0
+        intel_rapl_tpmi        12288  0
+        intel_sdsi             16384  0
+        intel_uncore          270336  0
+        intel_uncore_frequency_common    16384  1 intel_uncore_frequency_tpmi
+        intel_uncore_frequency_tpmi    12288  0
+        intel_vsec             20480  1 intel_vsec_tpmi
+        intel_vsec_tpmi        16384  3 intel_rapl_tpmi,isst_tpmi_core,intel_uncore_frequency_tpmi
+        iommufd               122880  1 vfio
+        irqbypass              12288  1 kvm
+        irqbypass              12288  2 vfio_pci_core,kvm
+        jbd2                  204800  1 ext4
+        kvm                  1392640  1 kvm_amd
+        kvm                  1392640  1 kvm_intel
+        kvm_amd               237568  0
+        kvm_intel             425984  0
+        libcrc32c              12288  1 xfs
+        libcrc32c              12288  5 nf_conntrack,nf_nat,openvswitch,nf_tables,xfs
+        macsec                 65536  1 mlx5_ib
+        mbcache                16384  1 ext4
+        mlx_compat             20480  12 rdma_cm,ib_ipoib,mlxdevm,mlxfw,iw_cm,ib_umad,ib_core,rdma_ucm,ib_uverbs,mlx5_ib,ib_cm,mlx5_core
+        mlx5_core            2412544  1 mlx5_ib
+        mlx5_core            2895872  1 mlx5_ib
+        mlx5_ib               495616  0
+        mlx5_ib               577536  8
+        mlxdevm               389120  1 mlx5_core
+        mlxfw                  36864  1 mlx5_core
+        pci_hyperv_intf        12288  1 mlx5_core
+        psample                20480  1 mlx5_core
+        tls                   155648  2 bonding,mlx5_core
+        vfio                   73728  5 vfio_pci_core,vfio_iommu_type1,vfio_pci
+        vfio_iommu_type1       57344  0
+        vfio_pci               16384  0
+        vfio_pci_core          90112  1 vfio_pci
+        xfs                  2371584  2
+        EOL
+        
+        make LSMOD=./lsmod localmodconfig
+        
+    - name: make
+      run: |
+        make -j $(nproc) compile_commands.json
+        sed -i 's|/home/runner/work/linux/linux|/Volumes/workspace/code/linux|g' ./compile_commands.json
+
+    - name: upload compile_commands.json
+      uses: actions/upload-artifact@v4.6.2
+      with:
+        name: compile_commands.json
+        path: ./compile_commands.json
+    - name: distclean
+      run: make distclean
