@@ -19,7 +19,7 @@ jobs:
         sudo apt install -y bison flex libelf-dev
     - name: configure
       run: |
-        curl -o .config https://raw.githubusercontent.com/elrepo/kernel/refs/heads/main/kernel-ml/el10/config-6.16.8-x86_64
+        curl -o .config https://raw.githubusercontent.com/elrepo/kernel/6a1c1dd0a5dc3c588eed5d8b69fe113422f97bf5/kernel-ml/el10/config-6.17.1-x86_64
         make olddefconfig
         cat >./lsmod<<EOL
         amd_atl                57344  1
